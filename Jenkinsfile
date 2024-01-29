@@ -2,49 +2,33 @@ pipeline {
     agent any
 
     stages {
-        stage('Build and Test') {
+        stage('Test') {
             steps {
-                script {
-                    def mvnHome = tool 'Maven'
-                    sh "${mvnHome}/bin/mvn clean test"
-                }
+                sh 'mvn test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    withSonarQubeEnv('SonarQube Server') {
-                        def mvnHome = tool 'Maven'
-                        sh "${mvnHome}/bin/mvn sonar:sonar"
-                    }
-                }
+                sh "mvn clean verify sonar:sonar -Dsonar.login=admin -Dsonar.password=adm1n -Dsonar.projectKey=simple-web-app -Dsonar.projectName='simple-web-app'"
             }
-        }
+         }
 
-        stage('Code Coverage') {
+        stage('Archive the artifacts') {
             steps {
-                script {
-                    def mvnHome = tool 'Maven'
-                    sh "${mvnHome}/bin/mvn jacoco:report"
-                }
-                publishHTML([
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target/site/jacoco',
-                    reportFiles: 'index.html',
-                    reportName: 'JaCoCo Code Coverage'
-                ])
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'target/*.war', fingerprint: true, followSymlinks: false, onlyIfSuccessful: true
             }
         }
 
         stage('Deploy to Tomcat') {
             steps {
-                script {
-                    def mvnHome = tool 'Maven'
-                    sh "${mvnHome}/bin/mvn tomcat7:deploy"
-                }
+                deploy adapters: [tomcat9(credentialsId: 'e9e7d70f-9fe8-4062-bf2c-811026633c72', path: '', url: 'http://localhost:8000')], contextPath: 'TomcatMavenApp', onFailure: false, war: '**/*.war'
             }
         }
     }
