@@ -13,7 +13,7 @@ class CalculatorTest {
     @Test
     void addSimple(){
         double result = calculator.calculate(1,1,'+');
-        Assertions.assertEquals(2,result);
+        Assertions.assertEquals(3,result);
     }
     @Test
     void multiplySimple(){
